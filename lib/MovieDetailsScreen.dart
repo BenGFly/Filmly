@@ -73,6 +73,14 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     }
   }
 
+  _getBannerImage() {
+    if (widget.movie['backdrop_path'] != null) {
+      return 'https://image.tmdb.org/t/p/original${widget.movie['backdrop_path']}';
+    } else {
+      return 'assets/placeholder.png';
+    }
+  }
+
   Future<void> _loadCast() async {
     final movieId = widget.movie['id'];
     final apiKey = TMDbService().apiKey; // Tu API key
@@ -282,8 +290,18 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
               ),
             // Parte superior con el fondo gris
             Container(
-              color: Colors.grey[850],
               padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(_getBannerImage()),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  filterQuality: FilterQuality.high,
+                  opacity: 0.5,
+                  colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.5), BlendMode.darken),
+                ),
+              ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Verificamos si el ancho de la pantalla es menor que un valor umbral
@@ -879,7 +897,7 @@ class RecommendedMovies extends StatelessWidget {
                   );
                 },
                 viewportFraction:
-                    MediaQuery.of(context).size.width > 700 ? 0.2 : 0.5,
+                    MediaQuery.of(context).size.width > 700 ? 0.25 : 0.6,
                 scale: 0.4,
                 control: const SwiperControl(
                   color: Colors.white,
