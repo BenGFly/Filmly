@@ -19,7 +19,6 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   String director = 'Cargando director...';
   String errorMessage = '';
   List<Map<String, dynamic>> cast = [];
-  final ScrollController _scrollController = ScrollController();
 
   // Mapeo de IDs de géneros a nombres
   final Map<int, String> genreMap = {
@@ -299,7 +298,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   filterQuality: FilterQuality.high,
                   opacity: 0.5,
                   colorFilter: ColorFilter.mode(
-                      Colors.black.withOpacity(0.5), BlendMode.darken),
+                      Colors.black.withValues(alpha: 0.5), BlendMode.darken),
                 ),
               ),
               child: LayoutBuilder(
@@ -427,15 +426,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                         final Uri url = Uri.parse(trailerUrl);
 
                                         if (!await launchUrl(url)) {
-                                          print('Error al abrir el trailer');
                                         }
-                                        print('Abriendo trailer...');
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text(
-                                                  'Redirigiéndote al trailer')),
-                                        );
+
                                       },
                                       icon: const Icon(
                                         Icons.play_arrow,
@@ -593,16 +585,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                                   Uri.parse(trailerUrl);
 
                                               if (!await launchUrl(url)) {
-                                                print(
-                                                    'Error al abrir el trailer');
+
                                               }
-                                              print('Abriendo trailer...');
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                    content: Text(
-                                                        'Redirigiéndote al trailer')),
-                                              );
+
                                             },
                                             icon: const Icon(
                                               Icons.play_arrow,
