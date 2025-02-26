@@ -20,6 +20,15 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingMore = false;
   int _currentPage = 1;
   String? _selectedGenre;
+  double? _selectedRating;
+  String? _selectedDateFilter;
+
+  final List<String> _dateFilters = [
+    'Siempre',
+    'Hace 1 mes',
+    'Hace 1 año',
+  ];
+
   final List<String> _genres = [
     'Cualquier género',
     'Acción',
@@ -41,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _selectedGenre = 'Cualquier género';
+    _selectedDateFilter = "Siempre";
     _loadNowPlayingMovies();
     _scrollController.addListener(_scrollListener);
 
@@ -54,6 +64,19 @@ class _HomeScreenState extends State<HomeScreen> {
         onClearFilters: _clearFilters,
         isLoading: _isLoading,
         movies: _movies,
+        dateFilters: _dateFilters,
+        selectedDateFilter: _selectedDateFilter,
+        onDateFilterChanged: (String? value) {
+          setState(() {
+            _selectedDateFilter = value;
+          });
+        },
+        selectedRating: _selectedRating,
+        onRatingChanged: (double? value) {
+          setState(() {
+            _selectedRating = value;
+          });
+        },
         isLoadingMore: _isLoadingMore,
         onGenreChanged: (String? value) {
           setState(() {
@@ -117,7 +140,10 @@ class _HomeScreenState extends State<HomeScreen> {
         director:
             _directorController.text.isEmpty ? null : _directorController.text,
         genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
+
         page: _currentPage,
+        rating: _selectedRating,
+        dateFilter: _selectedDateFilter,
       );
       setState(() {
         _movies = movies;
@@ -148,6 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _directorController.text.isEmpty ? null : _directorController.text,
         genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
         page: _currentPage + 1,
+        rating: _selectedRating,
+        dateFilter: _selectedDateFilter,
       );
 
       if (movies.isNotEmpty) {
@@ -172,6 +200,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _controller.clear();
       _directorController.clear();
       _selectedGenre = 'Cualquier género';
+      _selectedRating = null;
+      _selectedDateFilter = "Siempre";
+
       _movies = [];
     });
     _loadNowPlayingMovies();
@@ -218,6 +249,19 @@ class _HomeScreenState extends State<HomeScreen> {
             genres: _genres,
             onSearch: _searchMovies,
             onClearFilters: _clearFilters,
+            dateFilters: _dateFilters,
+            selectedDateFilter: _selectedDateFilter,
+            onDateFilterChanged: (String? value) {
+              setState(() {
+                _selectedDateFilter = value;
+              });
+            },
+            selectedRating: _selectedRating,
+            onRatingChanged: (double? value) {
+              setState(() {
+                _selectedRating = value;
+              });
+            },
             isLoading: _isLoading,
             movies: _movies,
             isLoadingMore: _isLoadingMore,

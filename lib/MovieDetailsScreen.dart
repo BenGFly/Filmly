@@ -425,9 +425,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                             await _loadTrailer();
                                         final Uri url = Uri.parse(trailerUrl);
 
-                                        if (!await launchUrl(url)) {
-                                        }
-
+                                        if (!await launchUrl(url)) {}
                                       },
                                       icon: const Icon(
                                         Icons.play_arrow,
@@ -584,10 +582,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                               final Uri url =
                                                   Uri.parse(trailerUrl);
 
-                                              if (!await launchUrl(url)) {
-
-                                              }
-
+                                              if (!await launchUrl(url)) {}
                                             },
                                             icon: const Icon(
                                               Icons.play_arrow,
@@ -829,7 +824,7 @@ class RecommendedMovies extends StatelessWidget {
             )
           else
             SizedBox(
-              height: MediaQuery.of(context).size.height * 0.6,
+              height: MediaQuery.of(context).size.height > 700 ? 400 : 370,
               width: double.infinity,
 
               // Utilizamos el 30% del alto de la pantalla
