@@ -2,6 +2,7 @@ import 'package:filmly/RegisterScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'HomeScreen.dart';
 import 'config.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +42,7 @@ class AuthWrapper extends StatelessWidget {
     if (supabase.auth.currentUser == null) {
       return const RegisterScreen(); // Mostrar la pantalla de login si no está autenticado
     } else {
-      return const RegisterScreen(); // Mostrar la pantalla principal si está autenticado
+      return const HomeScreen(); // Mostrar la pantalla principal si está autenticado
     }
   }
 }

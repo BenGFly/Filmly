@@ -70,117 +70,220 @@ class _HomeContentState extends State<HomeContent> {
 
 // ...existing code...
 
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 600 ? 4 : 2;
-    final isTablet = screenWidth > 600;
+  // Actualiza el método build() para ajustar la altura del panel de filtros
+@override
+Widget build(BuildContext context) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+  final isLandscape = screenWidth > screenHeight;
+  final crossAxisCount = screenWidth > 600 ? 4 : (isLandscape ? 3 : 2);
+  final isTablet = screenWidth > 600;
+  
+  // Calcula la altura máxima del panel de filtros basada en el tamaño de la pantalla
+  final filtersPanelHeight = isTablet 
+      ? 270.0
+      : (isLandscape ? 240.0 : 300.0); // Reducido para landscape
 
-    return Scaffold(
-      floatingActionButton: AnimatedScale(
-        duration: const Duration(milliseconds: 200),
-        scale: _showFilters ? 0.9 : 1.0,
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            setState(() {
-              _showFilters = !_showFilters;
-            });
-          },
-          backgroundColor:
-              _showFilters ? Colors.grey[800] : const Color(0xFFFF6347),
-          icon: Icon(
-            _showFilters ? Icons.close : Icons.filter_list,
+  return Scaffold(
+    floatingActionButton: AnimatedScale(
+      duration: const Duration(milliseconds: 200),
+      scale: _showFilters ? 0.9 : 1.0,
+      child: FloatingActionButton.extended(
+        onPressed: () {
+          setState(() {
+            _showFilters = !_showFilters;
+          });
+        },
+        backgroundColor:
+            _showFilters ? Colors.grey[800] : const Color(0xFFFF6347),
+        icon: Icon(
+          _showFilters ? Icons.close : Icons.filter_list,
+          color: Colors.white,
+        ),
+        label: Text(
+          _showFilters ? 'Ocultar' : 'Filtrar', // Texto más corto
+          style: const TextStyle(
             color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
-          label: Text(
-            _showFilters ? 'Ocultar filtros' : 'Mostrar filtros',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          elevation: 6,
+        ),
+        elevation: 6,
+      ),
+    ),
+    floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black87, Color(0xFF1A1A1A)],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.black87, Color(0xFF1A1A1A)],
-          ),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            // Panel de filtros con animación
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              height: _showFilters ? (isTablet ? 270 : 320) : 0,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: _showFilters ? 1.0 : 0.0,
-                child: SingleChildScrollView(
-                  child: Card(
-                    elevation: 10,
-                    shadowColor: const Color(0xFFFF6347).withOpacity(0.3),
-                    color: Colors.grey[850],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: const Color(0xFFFF6347).withOpacity(0.3),
-                        width: 1,
-                      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 8), // Reducido de 16 a 8
+          // Panel de filtros con animación
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            height: _showFilters ? filtersPanelHeight : 0,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: _showFilters ? 1.0 : 0.0,
+              child: SingleChildScrollView(
+                child: Card(
+                  elevation: 8, // Reducido de 10 a 8
+                  shadowColor: const Color(0xFFFF6347).withOpacity(0.3),
+                  color: Colors.grey[850],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: const Color(0xFFFF6347).withOpacity(0.3),
+                      width: 1,
                     ),
-                    margin: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 24.0 : 12.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: isTablet
-                          ? _buildTabletFilters()
-                          : _buildMobileFilters(),
-                    ),
+                  ),
+                  margin: EdgeInsets.symmetric(
+                      horizontal: isTablet ? 24.0 : 8.0), // Reducido el margen para móvil
+                  child: Padding(
+                    padding: EdgeInsets.all(isLandscape ? 12.0 : 16.0), // Padding más pequeño en landscape
+                    child: isTablet ? _buildTabletFilters() : 
+                           isLandscape ? _buildLandscapeFilters() : _buildMobileFilters(),
                   ),
                 ),
               ),
             ),
+          ),
 
-            // Información sobre número de resultados
-            if (widget.movies.isNotEmpty && !widget.isLoading)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.movie_filter,
-                        color: Color(0xFFFF6347), size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Películas encontradas: ${widget.movies.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+          // Información sobre número de resultados
+          if (widget.movies.isNotEmpty && !widget.isLoading)
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0), // Reducido
+              child: Row(
+                children: [
+                  const Icon(Icons.movie_filter,
+                      color: Color(0xFFFF6347), size: 16), // Reducido tamaño de icono
+                  const SizedBox(width: 6), // Reducido
+                  Text(
+                    'Películas: ${widget.movies.length}', // Texto más corto
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13, // Reducido tamaño
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+
+          // Lista de películas
+          Expanded(
+            child: widget.isLoading
+                ? _buildLoadingIndicator()
+                : widget.movies.isEmpty
+                    ? _buildEmptyState()
+                    : _buildMoviesGrid(crossAxisCount),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+Widget _buildLandscapeFilters() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // Título de filtros
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.filter_alt, color: Color(0xFFFF6347), size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Filtros de búsqueda',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-
-            // Lista de películas
-            Expanded(
-              child: widget.isLoading
-                  ? _buildLoadingIndicator()
-                  : widget.movies.isEmpty
-                      ? _buildEmptyState()
-                      : _buildMoviesGrid(crossAxisCount),
-            ),
-          ],
-        ),
+            ],
+          ),
+          // Añadir botón de búsqueda directamente en el título
+          IconButton(
+            onPressed: widget.onSearch,
+            icon: const Icon(Icons.search, color: Color(0xFFFF6347)),
+            tooltip: 'Buscar',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
       ),
-    );
-  }
+      const Divider(color: Color(0xFFFF6347), thickness: 1, height: 16), // Altura reducida
+
+      // Layout optimizado para landscape
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Primera columna: búsquedas
+          Expanded(
+            flex: 2,
+            child: Column(
+              children: [
+                _buildSearchField(widget.controller, 'Buscar película', Icons.movie),
+                const SizedBox(height: 8), // Reducido
+                _buildSearchField(widget.directorController, 'Director', Icons.person),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8), // Reducido
+          
+          // Segunda columna: dropdown y slider
+          Expanded(
+            flex: 2,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _buildGenreDropdown()),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildDateDropdown()),
+                  ],
+                ),
+                const SizedBox(height: 8), // Reducido
+                _buildCompactRatingSlider(),
+              ],
+            ),
+          ),
+          
+          // Tercera columna: botones
+          const SizedBox(width: 8), // Reducido
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildCompactActionButton(
+                'Buscar',
+                Icons.search,
+                widget.onSearch,
+                const Color(0xFFFF6347),
+              ),
+              const SizedBox(height: 8), // Reducido
+              _buildCompactActionButton(
+                'Limpiar',
+                Icons.clear_all,
+                widget.onClearFilters,
+                Colors.grey[700]!,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
   Widget _buildTabletFilters() {
     return Column(
@@ -324,105 +427,260 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildSearchField(
-      TextEditingController controller, String label, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+  Widget _buildSearchField(TextEditingController controller, String label, IconData icon) {
+  final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+  
+  return Container(
+    height: isLandscape ? 40 : 48, // Altura reducida en landscape
+    decoration: BoxDecoration(
+      color: Colors.grey[900],
+      borderRadius: BorderRadius.circular(10),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 5,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: TextField(
+      controller: controller,
+      style: TextStyle(
+        color: Colors.white, 
+        fontSize: isLandscape ? 12 : 14, // Texto más pequeño en landscape
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: Colors.grey[400], 
+          fontSize: isLandscape ? 12 : 14, // Etiqueta más pequeña en landscape
+        ),
+        prefixIcon: Icon(
+          icon, 
+          color: const Color(0xFFFF6347), 
+          size: isLandscape ? 16 : 18, // Icono más pequeño en landscape
+        ),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.symmetric(
+          vertical: isLandscape ? 8 : 12, 
+          horizontal: isLandscape ? 12 : 16,
+        ),
+        isDense: isLandscape, // Más compacto en landscape
+      ),
+    ),
+  );
+}
+// Versión compacta del slider de rating
+Widget _buildCompactRatingSlider() {
+  return Column(
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Rating mínimo:',
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: _getRatingColor(widget.selectedRating ?? 0).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _getRatingColor(widget.selectedRating ?? 0),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              (widget.selectedRating ?? 0.0).toStringAsFixed(1),
+              style: TextStyle(
+                color: _getRatingColor(widget.selectedRating ?? 0),
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
           ),
         ],
       ),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-          prefixIcon: Icon(icon, color: const Color(0xFFFF6347), size: 18),
-          border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+          trackHeight: 3,
+          activeTrackColor: _getRatingColor(widget.selectedRating ?? 0),
+          inactiveTrackColor: Colors.grey[800],
+          thumbColor: _getRatingColor(widget.selectedRating ?? 0),
+          overlayColor: _getRatingColor(widget.selectedRating ?? 0).withOpacity(0.2),
+        ),
+        child: Slider(
+          value: widget.selectedRating ?? 0,
+          min: 0,
+          max: 10,
+          divisions: 100,
+          onChanged: widget.onRatingChanged,
         ),
       ),
-    );
-  }
+    ],
+  );
+}
 
-  Widget _buildGenreDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+// Botones más compactos para el modo landscape
+Widget _buildCompactActionButton(String label, IconData icon, VoidCallback onPressed, Color color) {
+  return ElevatedButton(
+    onPressed: onPressed,
+    style: ElevatedButton.styleFrom(
+      backgroundColor: color,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      elevation: 3,
+      minimumSize: const Size(90, 34),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
           ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: widget.selectedGenre,
-        items: widget.genres
-            .map((genre) => DropdownMenuItem(
-                  value: genre,
-                  child: Text(genre, style: TextStyle(color: Colors.grey[300])),
-                ))
-            .toList(),
-        onChanged: widget.onGenreChanged,
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.category, color: Color(0xFFFF6347), size: 18),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
-        style: const TextStyle(color: Colors.white),
-        dropdownColor: Colors.grey[850],
-        isExpanded: true,
-        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFFF6347)),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
-  Widget _buildDateDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: widget.selectedDateFilter,
-        items: widget.dateFilters
-            .map((date) => DropdownMenuItem(
-                  value: date,
-                  child: Text(date, style: TextStyle(color: Colors.grey[300])),
-                ))
-            .toList(),
-        onChanged: widget.onDateFilterChanged,
-        decoration: const InputDecoration(
-          prefixIcon:
-              Icon(Icons.calendar_today, color: Color(0xFFFF6347), size: 18),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+// También modifica los dropdowns para que sean más pequeños
+Widget _buildGenreDropdown() {
+  final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+  
+  return Container(
+    height: isLandscape ? 40 : 48,
+    decoration: BoxDecoration(
+      color: Colors.grey[900],
+      borderRadius: BorderRadius.circular(10),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 5,
+          offset: const Offset(0, 2),
         ),
-        style: const TextStyle(color: Colors.white),
-        dropdownColor: Colors.grey[850],
-        isExpanded: true,
-        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFFF6347)),
+      ],
+    ),
+    child: DropdownButtonFormField<String>(
+      value: widget.selectedGenre,
+      items: widget.genres
+          .map((genre) => DropdownMenuItem(
+                value: genre,
+                child: Text(
+                  genre,
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: isLandscape ? 12 : 14,
+                  ),
+                ),
+              ))
+          .toList(),
+      onChanged: widget.onGenreChanged,
+      decoration: InputDecoration(
+        prefixIcon: Icon(
+          Icons.category,
+          color: const Color(0xFFFF6347),
+          size: isLandscape ? 16 : 18,
+        ),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isLandscape ? 8 : 16,
+          vertical: isLandscape ? 8 : 12,
+        ),
+        isDense: isLandscape,
       ),
-    );
-  }
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: isLandscape ? 12 : 14,
+      ),
+      dropdownColor: Colors.grey[850],
+      isExpanded: true,
+      icon: Icon(
+        Icons.arrow_drop_down,
+        color: const Color(0xFFFF6347),
+        size: isLandscape ? 20 : 24,
+      ),
+      // Quitar esta línea o asegurarse que sea >= 48
+      // itemHeight: isLandscape ? 40 : null,
+    ),
+  );
+}
+
+Widget _buildDateDropdown() {
+  final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+  
+  return Container(
+    height: isLandscape ? 40 : 48,
+    decoration: BoxDecoration(
+      color: Colors.grey[900],
+      borderRadius: BorderRadius.circular(10),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 5,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: DropdownButtonFormField<String>(
+      value: widget.selectedDateFilter,
+      items: widget.dateFilters
+          .map((date) => DropdownMenuItem(
+                value: date,
+                child: Text(
+                  date,
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: isLandscape ? 12 : 14,
+                  ),
+                ),
+              ))
+          .toList(),
+      onChanged: widget.onDateFilterChanged,
+      decoration: InputDecoration(
+        prefixIcon: Icon(
+          Icons.calendar_today,
+          color: const Color(0xFFFF6347),
+          size: isLandscape ? 16 : 18,
+        ),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isLandscape ? 8 : 16,
+          vertical: isLandscape ? 8 : 12,
+        ),
+        isDense: isLandscape,
+      ),
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: isLandscape ? 12 : 14,
+      ),
+      dropdownColor: Colors.grey[850],
+      isExpanded: true,
+      icon: Icon(
+        Icons.arrow_drop_down,
+        color: const Color(0xFFFF6347),
+        size: isLandscape ? 20 : 24,
+      ),
+      // Quitar esta línea o asegurarse que sea >= 48
+      // itemHeight: isLandscape ? 40 : null,
+    ),
+  );
+}
+
+
 
   Widget _buildRatingSlider() {
     return Column(
