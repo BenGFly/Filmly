@@ -4,6 +4,7 @@ import 'tmdb_service.dart';
 import 'FavoritesScreen.dart';
 import 'SettingsScreen.dart';
 import 'HomeContent.dart';
+import 'AIRecommendationScreen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,7 +24,9 @@ class _HomeScreenState extends State<HomeScreen>
   String? _selectedGenre;
   double? _selectedRating;
   String? _selectedDateFilter;
-
+  DateTime? _lastInfoMessageTime;
+  String _lastInfoMessage = '';
+  bool _canLoadMore = true; // Para controlar si aún podemos cargar más
   // Controlador para las animaciones de transición
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -53,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen>
     'Explora',
     'Favoritas',
     'Vistas',
+    'IA Cinéfila',
     'Ajustes'
   ];
 
@@ -91,89 +95,113 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent * 0.9 &&
-        !_isLoadingMore) {
+        !_isLoadingMore &&
+        _canLoadMore) {
+      // Verificar _canLoadMore
       _loadMoreMovies();
     }
   }
-void _loadMoreMovies() async {
-  if (_isLoadingMore || _isLoading) return;
 
-  setState(() {
-    _isLoadingMore = true;
-  });
+  void _loadMoreMovies() async {
+    if (_isLoadingMore || _isLoading) return;
 
-  try {
-    final tmdbService = TMDbService();
-    final nextPage = _currentPage + 1;
-    
-    List<dynamic> newMovies;
-    
-    // If we're searching with filters, use the search endpoint
-    if (_controller.text.isNotEmpty || 
-        _directorController.text.isNotEmpty || 
-        (_selectedGenre != null && _selectedGenre != 'Cualquier género') ||
-        _selectedRating != null ||
-        (_selectedDateFilter != null && _selectedDateFilter != 'Siempre')) {
-      
-      newMovies = await tmdbService.searchMovies(
-        query: _controller.text.isEmpty ? null : _controller.text,
-        director: _directorController.text.isEmpty ? null : _directorController.text,
-        genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
-        page: nextPage,
-        rating: _selectedRating,
-        dateFilter: _selectedDateFilter,
-      );
-    } 
-    // Otherwise load now playing movies
-    else {
-      newMovies = await tmdbService.getNowPlayingMovies(page: nextPage);
-    }
-    
-    if (newMovies.isNotEmpty) {
-      setState(() {
-        // Filtrar duplicados antes de añadir las nuevas películas
-        final Set<int> existingIds = _movies.map<int>((movie) => movie['id']).toSet();
-        final List<dynamic> uniqueNewMovies = newMovies.where((movie) => 
-          !existingIds.contains(movie['id'])).toList();
-        
-        // Si hay películas nuevas únicas, añadirlas y actualizar la página
-        if (uniqueNewMovies.isNotEmpty) {
-          _movies.addAll(uniqueNewMovies);
-          _currentPage = nextPage;
-        } else {
-          // Si todas las nuevas películas son duplicados, mostrar mensaje
-          _showInfoSnackbar('No se encontraron más películas únicas');
-        }
-      });
-    } else {
-      // Si la API devuelve una lista vacía
-      _showInfoSnackbar('No hay más películas disponibles');
-    }
-  } catch (e) {
-    _showErrorSnackbar('Error al cargar más películas: $e');
-  } finally {
     setState(() {
-      _isLoadingMore = false;
+      _isLoadingMore = true;
     });
+
+    try {
+      final tmdbService = TMDbService();
+      final nextPage = _currentPage + 1;
+
+      List<dynamic> newMovies;
+
+      // If we're searching with filters, use the search endpoint
+      if (_controller.text.isNotEmpty ||
+          _directorController.text.isNotEmpty ||
+          (_selectedGenre != null && _selectedGenre != 'Cualquier género') ||
+          _selectedRating != null ||
+          (_selectedDateFilter != null && _selectedDateFilter != 'Siempre')) {
+        newMovies = await tmdbService.searchMovies(
+          query: _controller.text.isEmpty ? null : _controller.text,
+          director: _directorController.text.isEmpty
+              ? null
+              : _directorController.text,
+          genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
+          page: nextPage,
+          rating: _selectedRating,
+          dateFilter: _selectedDateFilter,
+        );
+      }
+      // Otherwise load now playing movies
+      else {
+        newMovies = await tmdbService.getNowPlayingMovies(page: nextPage);
+      }
+
+      if (newMovies.isNotEmpty) {
+        setState(() {
+          // Filtrar duplicados antes de añadir las nuevas películas
+          final Set<int> existingIds =
+              _movies.map<int>((movie) => movie['id']).toSet();
+          final List<dynamic> uniqueNewMovies = newMovies
+              .where((movie) => !existingIds.contains(movie['id']))
+              .toList();
+
+          // Si hay películas nuevas únicas, añadirlas y actualizar la página
+          if (uniqueNewMovies.isNotEmpty) {
+            _movies.addAll(uniqueNewMovies);
+            _currentPage = nextPage;
+          } else {
+            // Si todas las nuevas películas son duplicados, mostrar mensaje
+            _showInfoSnackbar('No se encontraron más películas únicas');
+            _canLoadMore = false; // Detener futuros intentos
+          }
+        });
+      } else {
+        // Si la API devuelve una lista vacía
+        _showInfoSnackbar('No hay más películas disponibles');
+        _canLoadMore = false; // Detener futuros intentos
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error al cargar más películas: $e');
+    } finally {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
   }
-}
 
 // Añade este método para mostrar mensajes informativos
-void _showInfoSnackbar(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.blueGrey,
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      duration: const Duration(seconds: 2),
-    ),
-  );
-}
+  void _showInfoSnackbar(String message) {
+    final now = DateTime.now();
+
+    // Comprobar si es el mismo mensaje y si ha pasado suficiente tiempo
+    // Solo mostrar el mensaje si:
+    // 1. Es un mensaje diferente al último, o
+    // 2. Han pasado al menos 5 segundos desde el último mensaje idéntico
+    if (_lastInfoMessageTime == null ||
+        message != _lastInfoMessage ||
+        now.difference(_lastInfoMessageTime!).inSeconds > 5) {
+      // Actualizar el tiempo y mensaje
+      _lastInfoMessageTime = now;
+      _lastInfoMessage = message;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.blueGrey,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   void _loadNowPlayingMovies() async {
     setState(() {
       _isLoading = true;
+      _canLoadMore = true; // Resetear esta variable
     });
 
     try {
@@ -193,43 +221,43 @@ void _showInfoSnackbar(String message) {
   }
 
   void _searchMovies() async {
-  setState(() {
-    _isLoading = true;
-    _currentPage = 1; // Reiniciar la paginación
-  });
-
-  try {
-    final tmdbService = TMDbService();
-    final movies = await tmdbService.searchMovies(
-      query: _controller.text.isEmpty ? null : _controller.text,
-      director:
-          _directorController.text.isEmpty ? null : _directorController.text,
-      genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
-      page: _currentPage,
-      rating: _selectedRating,
-      dateFilter: _selectedDateFilter,
-    );
-    
-    // Asegurarse de que no hay duplicados (aunque aquí es menos probable porque es la primera página)
-    final uniqueMovies = movies.toSet().toList();
-    
     setState(() {
-      _movies = uniqueMovies;
+      _isLoading = true;
+      _currentPage = 1; // Reiniciar la paginación
+      _canLoadMore = true; // Resetear esta variable
     });
-    
-    // Mostrar mensaje si no hay resultados
-    if (uniqueMovies.isEmpty) {
-      _showInfoSnackbar('No se encontraron películas con estos criterios');
+
+    try {
+      final tmdbService = TMDbService();
+      final movies = await tmdbService.searchMovies(
+        query: _controller.text.isEmpty ? null : _controller.text,
+        director:
+            _directorController.text.isEmpty ? null : _directorController.text,
+        genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
+        page: _currentPage,
+        rating: _selectedRating,
+        dateFilter: _selectedDateFilter,
+      );
+
+      // Asegurarse de que no hay duplicados (aunque aquí es menos probable porque es la primera página)
+      final uniqueMovies = movies.toSet().toList();
+
+      setState(() {
+        _movies = uniqueMovies;
+      });
+
+      // Mostrar mensaje si no hay resultados
+      if (uniqueMovies.isEmpty) {
+        _showInfoSnackbar('No se encontraron películas con estos criterios');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error al buscar películas: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-  } catch (e) {
-    _showErrorSnackbar('Error al buscar películas: $e');
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
-
 
   void _clearFilters() {
     setState(() {
@@ -239,6 +267,7 @@ void _showInfoSnackbar(String message) {
       _selectedRating = null;
       _selectedDateFilter = "Siempre";
       _movies = [];
+      _canLoadMore = true; // Resetear esta variable
     });
     _loadNowPlayingMovies();
   }
@@ -273,10 +302,7 @@ void _showInfoSnackbar(String message) {
     );
   }
 
-
-
 // Y al pagar más películas:
-
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +332,7 @@ void _showInfoSnackbar(String message) {
                 dateFilters: _dateFilters,
                 selectedDateFilter: _selectedDateFilter,
                 scrollController: _scrollController,
-                 movies: _movies,
+                movies: _movies,
                 onDateFilterChanged: (String? value) {
                   setState(() {
                     _selectedDateFilter = value;
@@ -329,6 +355,7 @@ void _showInfoSnackbar(String message) {
               ),
               const FavoritesScreen(),
               const ViewedMoviesScreen(),
+              const AIRecommendationScreen(),
               const SettingsScreen(),
             ],
           ),
@@ -446,19 +473,19 @@ void _showInfoSnackbar(String message) {
       child: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        elevation: 0, // Quitar sombra default
-        backgroundColor: Colors.transparent, // Fondo transparente
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         type: BottomNavigationBarType.fixed,
         items: [
           _buildNavigationBarItem(Icons.explore, 'Explorar', 0),
           _buildNavigationBarItem(Icons.favorite, 'Favoritas', 1),
           _buildNavigationBarItem(Icons.visibility, 'Vistas', 2),
-          _buildNavigationBarItem(Icons.settings, 'Ajustes', 3),
+          _buildNavigationBarItem(Icons.auto_awesome, 'IA', 3), // Nuevo ícono
+          _buildNavigationBarItem(Icons.settings, 'Ajustes', 4),
         ],
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        selectedItemColor: _getThemeColorForIndex(
-            _selectedIndex), // Color dinámico según la sección
+        selectedItemColor: _getThemeColorForIndex(_selectedIndex),
         unselectedItemColor: Colors.grey,
         selectedFontSize: 12,
         unselectedFontSize: 10,
@@ -498,6 +525,8 @@ void _showInfoSnackbar(String message) {
       case 2:
         return const Color(0xFF3CB371); // Verde para Vistos
       case 3:
+        return const Color(0xFFAD1FEA); // Púrpura para IA
+      case 4:
         return const Color(0xFF64B5F6); // Azul para Ajustes
       default:
         return const Color(0xFFFF6347); // Default
@@ -513,6 +542,8 @@ void _showInfoSnackbar(String message) {
       case 2:
         return Icons.visibility;
       case 3:
+        return Icons.auto_awesome; // Nuevo ícono para IA
+      case 4:
         return Icons.settings;
       default:
         return Icons.explore;

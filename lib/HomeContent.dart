@@ -70,13 +70,23 @@ class _HomeContentState extends State<HomeContent> {
 
 // ...existing code...
 
+  // Actualiza el método build() para ajustar la altura del panel de filtros
+// Modifica el método build() para manejar mejor el teclado en landscape
+// Modifica el método build para mejorar el manejo del panel de filtros
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 600 ? 4 : 2;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLandscape = screenWidth > screenHeight;
+    final crossAxisCount = screenWidth > 600 ? 4 : (isLandscape ? 3 : 2);
     final isTablet = screenWidth > 600;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       floatingActionButton: AnimatedScale(
         duration: const Duration(milliseconds: 200),
         scale: _showFilters ? 0.9 : 1.0,
@@ -85,6 +95,9 @@ class _HomeContentState extends State<HomeContent> {
             setState(() {
               _showFilters = !_showFilters;
             });
+            if (_showFilters) {
+              FocusScope.of(context).unfocus();
+            }
           },
           backgroundColor:
               _showFilters ? Colors.grey[800] : const Color(0xFFFF6347),
@@ -93,7 +106,7 @@ class _HomeContentState extends State<HomeContent> {
             color: Colors.white,
           ),
           label: Text(
-            _showFilters ? 'Ocultar filtros' : 'Mostrar filtros',
+            _showFilters ? 'Ocultar' : 'Filtrar',
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -104,6 +117,8 @@ class _HomeContentState extends State<HomeContent> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -111,73 +126,337 @@ class _HomeContentState extends State<HomeContent> {
             colors: [Colors.black87, Color(0xFF1A1A1A)],
           ),
         ),
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            // Panel de filtros con animación
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              height: _showFilters ? (isTablet ? 270 : 320) : 0,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: _showFilters ? 1.0 : 0.0,
-                child: SingleChildScrollView(
-                  child: Card(
-                    elevation: 10,
-                    shadowColor: const Color(0xFFFF6347).withOpacity(0.3),
-                    color: Colors.grey[850],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: const Color(0xFFFF6347).withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    margin: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 24.0 : 12.0),
+        // Usar CustomScrollView para evitar problemas de overflow
+        child: SafeArea(
+          bottom: false,
+          child: CustomScrollView(
+            controller: widget.scrollController,
+            slivers: [
+              SliverToBoxAdapter(child: const SizedBox(height: 8)),
+
+              // Panel de filtros ahora como SliverToBoxAdapter
+              if (_showFilters)
+                SliverToBoxAdapter(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _showFilters ? 1.0 : 0.0,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: isTablet
-                          ? _buildTabletFilters()
-                          : _buildMobileFilters(),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 24.0 : 8.0),
+                      child: Card(
+                        elevation: 8,
+                        shadowColor: const Color(0xFFFF6347).withOpacity(0.3),
+                        color: Colors.grey[850],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: const Color(0xFFFF6347).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(isLandscape ? 12.0 : 16.0),
+                          child: isTablet
+                              ? _buildTabletFilters()
+                              : isLandscape
+                                  ? _buildLandscapeFilters()
+                                  : _buildMobileFilters(),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
-            // Información sobre número de resultados
-            if (widget.movies.isNotEmpty && !widget.isLoading)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Row(
+              // Contador de resultados
+              if (widget.movies.isNotEmpty && !widget.isLoading)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 6.0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.movie_filter,
+                            color: Color(0xFFFF6347), size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Películas: ${widget.movies.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Grid de películas
+              widget.isLoading
+                  ? SliverFillRemaining(
+                      child: _buildLoadingIndicator(),
+                    )
+                  : widget.movies.isEmpty
+                      ? SliverFillRemaining(
+                          child: _buildEmptyState(),
+                        )
+                      : SliverPadding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: 0.58,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                if (index < widget.movies.length) {
+                                  return _buildMovieCard(widget.movies[index]);
+                                } else {
+                                  return _buildLoadMoreIndicator();
+                                }
+                              },
+                              childCount: widget.movies.length +
+                                  (widget.isLoadingMore ? 1 : 0),
+                            ),
+                          ),
+                        ),
+
+              // Padding adicional al final
+              SliverToBoxAdapter(
+                child: SizedBox(
+                    height: MediaQuery.of(context).padding.bottom + 56),
+              ),
+            ],
+          ),
+        ),
+      ),
+      // Botón para cerrar el teclado
+      bottomNavigationBar: keyboardOpen && _showFilters
+          ? SafeArea(
+              child: Container(
+                height: 40,
+                color: Colors.transparent,
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: () => FocusScope.of(context).unfocus(),
+                    icon: const Icon(Icons.keyboard_hide,
+                        color: Color(0xFFFF6347)),
+                    label: const Text('Cerrar teclado',
+                        style: TextStyle(color: Color(0xFFFF6347))),
+                  ),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildLandscapeFilters() {
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    // Si el teclado está abierto, usar una versión ultrasimplificada del filtro
+    if (keyboardOpen) {
+      return SingleChildScrollView(
+        // Importante: envolver con SingleChildScrollView
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Importante: usar MainAxisSize.min
+          children: [
+            // Título de filtros - Esto debería ser visible ahora
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
                   children: [
-                    const Icon(Icons.movie_filter,
-                        color: Color(0xFFFF6347), size: 18),
-                    const SizedBox(width: 8),
+                    Icon(Icons.filter_alt, color: Color(0xFFFF6347), size: 16),
+                    SizedBox(width: 6),
                     Text(
-                      'Películas encontradas: ${widget.movies.length}',
-                      style: const TextStyle(
+                      'Filtros', // Nombre más corto
+                      style: TextStyle(
                         color: Colors.white,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-              ),
+                // Botón para cerrar el teclado
+                IconButton(
+                  onPressed: () {
+                    // Cerrar el teclado antes de ejecutar la acción de búsqueda
+                    FocusScope.of(context).unfocus();
+                    widget.onSearch();
+                  },
+                  icon: const Icon(Icons.keyboard_hide,
+                      color: Color(0xFFFF6347), size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Cerrar teclado',
+                ),
+              ],
+            ),
+            const Divider(color: Color(0xFFFF6347), thickness: 1, height: 12),
 
-            // Lista de películas
-            Expanded(
-              child: widget.isLoading
-                  ? _buildLoadingIndicator()
-                  : widget.movies.isEmpty
-                      ? _buildEmptyState()
-                      : _buildMoviesGrid(crossAxisCount),
+            // Solo mostrar los elementos más importantes en landscape con teclado
+            _buildSearchField(widget.controller, 'Película', Icons.movie),
+
+            const SizedBox(height: 8),
+
+            // Botones de acción
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCompactActionButton(
+                    'Buscar',
+                    Icons.search,
+                    widget.onSearch,
+                    const Color(0xFFFF6347),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCompactActionButton(
+                    'Limpiar',
+                    Icons.clear_all,
+                    widget.onClearFilters,
+                    Colors.grey[700]!,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
+      );
+    }
+
+    // Diseño normal para landscape sin teclado (como lo tenías)
+    return SingleChildScrollView(
+      // También envolver con SingleChildScrollView
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // También usar MainAxisSize.min aquí
+        children: [
+          // Título de filtros
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.filter_alt, color: Color(0xFFFF6347), size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    'Filtros de búsqueda',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              // Botón de búsqueda en el título
+              IconButton(
+                onPressed: () {
+                  // Cerrar el teclado antes de ejecutar la acción de búsqueda
+                  FocusScope.of(context).unfocus();
+                  widget.onSearch();
+                },
+                icon: const Icon(Icons.search, color: Color(0xFFFF6347)),
+                tooltip: 'Buscar',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const Divider(color: Color(0xFFFF6347), thickness: 1, height: 16),
+
+          // Layout optimizado para landscape (como lo tenías)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Primera columna: búsquedas
+              Expanded(
+                flex: 2,
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min, // Importante: MainAxisSize.min
+                  children: [
+                    _buildSearchField(
+                        widget.controller, 'Buscar película', Icons.movie),
+                    const SizedBox(height: 8),
+                    _buildSearchField(
+                        widget.directorController, 'Director', Icons.person),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Segunda columna: dropdown y slider
+              Expanded(
+                flex: 2,
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min, // Importante: MainAxisSize.min
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _buildGenreDropdown()),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildDateDropdown()),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildCompactRatingSlider(),
+                  ],
+                ),
+              ),
+
+              // Tercera columna: botones
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min, // Importante: MainAxisSize.min
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildCompactActionButton(
+                    'Buscar',
+                    Icons.search,
+                    widget.onSearch,
+                    const Color(0xFFFF6347),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildCompactActionButton(
+                    'Limpiar',
+                    Icons.clear_all,
+                    widget.onClearFilters,
+                    Colors.grey[700]!,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+// Añade este método a la clase
+  Widget _buildKeyboardDismissButton() {
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    if (!keyboardOpen) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 16,
+      right: 16,
+      child: FloatingActionButton.small(
+        backgroundColor: const Color(0xFFFF6347),
+        onPressed: () => FocusScope.of(context).unfocus(),
+        child: const Icon(Icons.keyboard_hide, color: Colors.white),
       ),
     );
   }
@@ -326,10 +605,22 @@ class _HomeContentState extends State<HomeContent> {
 
   Widget _buildSearchField(
       TextEditingController controller, String label, IconData icon) {
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    // Altura aún más reducida si el teclado está abierto en landscape
+    final height = keyboardOpen && isLandscape
+        ? 36
+        : isLandscape
+            ? 40
+            : 48;
+
     return Container(
+      height: height.toDouble(),
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -340,24 +631,136 @@ class _HomeContentState extends State<HomeContent> {
       ),
       child: TextField(
         controller: controller,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isLandscape ? 12 : 14,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-          prefixIcon: Icon(icon, color: const Color(0xFFFF6347), size: 18),
+          labelStyle: TextStyle(
+            color: Colors.grey[400],
+            fontSize: isLandscape ? 12 : 14,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: const Color(0xFFFF6347),
+            size: isLandscape ? 16 : 18,
+          ),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          contentPadding: EdgeInsets.symmetric(
+            vertical: isLandscape ? 6 : 12,
+            horizontal: isLandscape ? 12 : 16,
+          ),
+          isDense: true, // Siempre más compacto
         ),
       ),
     );
   }
 
+// Versión compacta del slider de rating
+  Widget _buildCompactRatingSlider() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Rating mínimo:',
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: _getRatingColor(widget.selectedRating ?? 0)
+                    .withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _getRatingColor(widget.selectedRating ?? 0),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                (widget.selectedRating ?? 0.0).toStringAsFixed(1),
+                style: TextStyle(
+                  color: _getRatingColor(widget.selectedRating ?? 0),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            trackHeight: 3,
+            activeTrackColor: _getRatingColor(widget.selectedRating ?? 0),
+            inactiveTrackColor: Colors.grey[800],
+            thumbColor: _getRatingColor(widget.selectedRating ?? 0),
+            overlayColor:
+                _getRatingColor(widget.selectedRating ?? 0).withOpacity(0.2),
+          ),
+          child: Slider(
+            value: widget.selectedRating ?? 0,
+            min: 0,
+            max: 10,
+            divisions: 100,
+            onChanged: widget.onRatingChanged,
+          ),
+        ),
+      ],
+    );
+  }
+
+// Botones más compactos para el modo landscape
+  Widget _buildCompactActionButton(
+      String label, IconData icon, VoidCallback onPressed, Color color) {
+    return ElevatedButton(
+      onPressed: () {
+        // Cerrar el teclado antes de ejecutar la acción de búsqueda
+        FocusScope.of(context).unfocus();
+        onPressed();
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        elevation: 3,
+        minimumSize: const Size(90, 34),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// También modifica los dropdowns para que sean más pequeños
   Widget _buildGenreDropdown() {
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+
     return Container(
+      height: isLandscape ? 40 : 48,
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -371,28 +774,55 @@ class _HomeContentState extends State<HomeContent> {
         items: widget.genres
             .map((genre) => DropdownMenuItem(
                   value: genre,
-                  child: Text(genre, style: TextStyle(color: Colors.grey[300])),
+                  child: Text(
+                    genre,
+                    style: TextStyle(
+                      color: Colors.grey[300],
+                      fontSize: isLandscape ? 12 : 14,
+                    ),
+                  ),
                 ))
             .toList(),
         onChanged: widget.onGenreChanged,
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.category, color: Color(0xFFFF6347), size: 18),
+        decoration: InputDecoration(
+          prefixIcon: Icon(
+            Icons.category,
+            color: const Color(0xFFFF6347),
+            size: isLandscape ? 16 : 18,
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 8 : 16,
+            vertical: isLandscape ? 8 : 12,
+          ),
+          isDense: isLandscape,
         ),
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isLandscape ? 12 : 14,
+        ),
         dropdownColor: Colors.grey[850],
         isExpanded: true,
-        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFFF6347)),
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: const Color(0xFFFF6347),
+          size: isLandscape ? 20 : 24,
+        ),
+        // Quitar esta línea o asegurarse que sea >= 48
+        // itemHeight: isLandscape ? 40 : null,
       ),
     );
   }
 
   Widget _buildDateDropdown() {
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+
     return Container(
+      height: isLandscape ? 40 : 48,
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -406,20 +836,42 @@ class _HomeContentState extends State<HomeContent> {
         items: widget.dateFilters
             .map((date) => DropdownMenuItem(
                   value: date,
-                  child: Text(date, style: TextStyle(color: Colors.grey[300])),
+                  child: Text(
+                    date,
+                    style: TextStyle(
+                      color: Colors.grey[300],
+                      fontSize: isLandscape ? 12 : 14,
+                    ),
+                  ),
                 ))
             .toList(),
         onChanged: widget.onDateFilterChanged,
-        decoration: const InputDecoration(
-          prefixIcon:
-              Icon(Icons.calendar_today, color: Color(0xFFFF6347), size: 18),
+        decoration: InputDecoration(
+          prefixIcon: Icon(
+            Icons.calendar_today,
+            color: const Color(0xFFFF6347),
+            size: isLandscape ? 16 : 18,
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 8 : 16,
+            vertical: isLandscape ? 8 : 12,
+          ),
+          isDense: isLandscape,
         ),
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isLandscape ? 12 : 14,
+        ),
         dropdownColor: Colors.grey[850],
         isExpanded: true,
-        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFFF6347)),
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: const Color(0xFFFF6347),
+          size: isLandscape ? 20 : 24,
+        ),
+        // Quitar esta línea o asegurarse que sea >= 48
+        // itemHeight: isLandscape ? 40 : null,
       ),
     );
   }
@@ -513,7 +965,11 @@ class _HomeContentState extends State<HomeContent> {
   Widget _buildActionButton(
       String label, IconData icon, VoidCallback onPressed, Color color) {
     return ElevatedButton(
-      onPressed: onPressed,
+      onPressed: () {
+        // Cerrar el teclado antes de ejecutar la acción de búsqueda
+        FocusScope.of(context).unfocus();
+        onPressed();
+      },
       style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
@@ -540,23 +996,31 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-
-
-
   Widget _buildLoadingIndicator() {
+    // Detectamos si estamos en landscape para adaptar el tamaño
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+
     return Center(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize:
+            MainAxisSize.min, // Esto es crucial para evitar el overflow
         children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6347)),
+          SizedBox(
+            // Contentedor con tamaño fijo para el CircularProgressIndicator
+            height: isLandscape ? 40 : 50,
+            width: isLandscape ? 40 : 50,
+            child: const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6347)),
+              strokeWidth: 3,
+            ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: isLandscape ? 12 : 20),
           Text(
             'Cargando películas...',
             style: TextStyle(
               color: Colors.grey[400],
-              fontSize: 16,
+              fontSize: isLandscape ? 14 : 16,
             ),
           ),
         ],
@@ -565,71 +1029,108 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   Widget _buildEmptyState() {
+    // Detectamos si estamos en landscape para adaptar el tamaño
+    final isLandscape =
+        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    // Versión ultra compacta si el teclado está abierto en landscape
+    if (isLandscape && keyboardOpen) {
+      return Center(
+        child: SingleChildScrollView(
+          // Añadimos scroll por si acaso
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Crucial para evitar overflow
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.sentiment_dissatisfied,
+                size: 36, // Tamaño reducido
+                color: Colors.grey[600],
+              ),
+              const SizedBox(height: 8), // Espaciado reducido
+              Text(
+                'No se encontraron películas',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14, // Texto más pequeño
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(height: 4),
+              TextButton.icon(
+                // Usamos TextButton en lugar de ElevatedButton
+                onPressed: widget.onClearFilters,
+                icon: const Icon(Icons.refresh,
+                    size: 14, color: Color(0xFFFF6347)),
+                label: const Text(
+                  'Reiniciar',
+                  style: TextStyle(fontSize: 12, color: Color(0xFFFF6347)),
+                ),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: const Size(0, 24), // Tamaño mínimo reducido
+                  tapTargetSize:
+                      MaterialTapTargetSize.shrinkWrap, // Más compacto
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Versión normal para otros casos
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.sentiment_dissatisfied,
-            size: 70,
-            color: Colors.grey[600],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'No se encontraron películas',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[500],
+      child: SingleChildScrollView(
+        // Añadimos scroll para mayor seguridad
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Crucial para evitar overflow
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.sentiment_dissatisfied,
+              size: isLandscape ? 60 : 70,
+              color: Colors.grey[600],
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Intenta con otros filtros de búsqueda',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[400],
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: widget.onClearFilters,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reiniciar filtros'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6347),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 20),
+            Text(
+              'No se encontraron películas',
+              style: TextStyle(
+                fontSize: isLandscape ? 18 : 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[500],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              'Intenta con otros filtros de búsqueda',
+              style: TextStyle(
+                fontSize: isLandscape ? 14 : 16,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: widget.onClearFilters,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reiniciar filtros'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6347),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildMoviesGrid(int crossAxisCount) {
-    return GridView.builder(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.58,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: widget.movies.length + (widget.isLoadingMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index < widget.movies.length) {
-          // Movie card
-          return _buildMovieCard(widget.movies[index]);
-        } else {
-          // Loading indicator at the bottom
-          return _buildLoadMoreIndicator();
-        }
-      },
     );
   }
 

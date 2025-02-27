@@ -99,7 +99,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
   
-// ...existing code...
 
   Future<void> _uploadProfileImage() async {
     try {
@@ -169,8 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Método separado para subir la imagen una vez seleccionada
-// ...existing code...
 
   // Método separado para subir la imagen una vez seleccionada
   Future<void> _uploadImageToSupabase(File imageFile) async {
@@ -233,26 +230,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 // ...existing code...
   
-  Future<void> _logout() async {
-    try {
-      await _supabase.auth.signOut();
-      
-      // Limpiar preferencias locales si es necesario
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      
-      if (!mounted) return;
-      
-      // Navegar a la pantalla de login y eliminar todas las rutas anteriores
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false,
-      );
-    } catch (e) {
-      _showErrorMessage('Error al cerrar sesión: $e');
-    }
+Future<void> _logout() async {
+  try {
+    await _supabase.auth.signOut();
+    
+    // En lugar de limpiar todas las preferencias, solo establecer rememberSession a false
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('rememberSession', false);
+    // Mantener otras preferencias si es necesario
+    
+    if (!mounted) return;
+    
+    // Navegar a la pantalla de login y eliminar todas las rutas anteriores
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  } catch (e) {
+    _showErrorMessage('Error al cerrar sesión: $e');
   }
-  
+}
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
