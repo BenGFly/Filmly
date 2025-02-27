@@ -14,9 +14,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _register() async {
+    // Validaciones básicas
+    if (_emailController.text.isEmpty ||
+        _usernameController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, completa todos los campos')),
+      );
+      return;
+    }
+
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Las contraseñas no coinciden')),
@@ -29,7 +41,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final response = await Supabase.instance.client.auth.signUp(
+      // 1. Registrar usuario en auth
+      final authResponse = await Supabase.instance.client.auth.signUp(
         email: _emailController.text,
         password: _passwordController.text,
         data: {
@@ -37,19 +50,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
       );
 
-      if (response.user != null) {
+      if (authResponse.user != null) {
+        // 2. Crear perfil en la tabla profiles
+        await Supabase.instance.client.from('profiles').insert({
+          'id': authResponse.user!.id,
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'username': _usernameController.text,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+
+        // 3. Mostrar mensaje de éxito y navegar al login
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro exitoso. Por favor inicia sesión.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navegar a la pantalla de login
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
       }
-    } on AuthException catch (error) {
+    } catch (error) {
+      // Manejo de errores mejorado
+      String errorMessage = 'Error durante el registro';
+
+      if (error is PostgrestException) {
+        errorMessage = 'Error en la base de datos: ${error.message}';
+      } else if (error is AuthException) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = error.toString();
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -102,14 +149,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Email',
                             labelStyle: TextStyle(color: Colors.white70),
-
                             prefixIcon: Icon(Icons.email, color: Colors.redAccent),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(Radius.circular(10)),
                             ),
                           ),
                           keyboardType: TextInputType.emailAddress,
-                          style: TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre completo',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            prefixIcon: Icon(Icons.person, color: Colors.redAccent),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(10)),
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
                         ),
                         const SizedBox(height: 20),
                         TextField(
@@ -117,12 +176,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Nombre de usuario',
                             labelStyle: TextStyle(color: Colors.white70),
-                            prefixIcon: Icon(Icons.person, color: Colors.redAccent),
+                            prefixIcon: Icon(Icons.alternate_email, color: Colors.redAccent),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(Radius.circular(10)),
                             ),
                           ),
-                          style: TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white),
                         ),
                         const SizedBox(height: 20),
                         TextField(
@@ -136,7 +195,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           obscureText: true,
-                          style: TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white),
                         ),
                         const SizedBox(height: 20),
                         TextField(
@@ -144,13 +203,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Confirmar contraseña',
                             labelStyle: TextStyle(color: Colors.white70),
-                            prefixIcon: Icon(Icons.lock, color: Colors.redAccent),
+                            prefixIcon: Icon(Icons.lock_outline, color: Colors.redAccent),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(Radius.circular(10)),
                             ),
                           ),
                           obscureText: true,
-                          style: TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white),
                         ),
                         const SizedBox(height: 30),
                         _isLoading
@@ -194,5 +253,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _nameController.dispose();
+    super.dispose();
   }
 }

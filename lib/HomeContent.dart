@@ -102,97 +102,98 @@ class _HomeContentState extends State<HomeContent> {
             const SizedBox(height: 16),
             Visibility(
               visible: _showFilters,
-              child: Card(
-                elevation: 8,
-                color: Colors.grey[800],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0), // Reducir padding
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Evitar expansión vertical
-                    children: [
-                      // Campo de búsqueda
-                      TextField(
-                        controller: widget.controller,
-                        decoration: _buildInputDecoration('Buscar película', Icons.movie),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: widget.directorController,
-                        decoration: _buildInputDecoration('Buscar por director', Icons.person),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
+              child: SingleChildScrollView(
+                child: Card(
+                  elevation: 8,
+                  color: Colors.grey[800],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0), // Reducir padding
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min, // Evitar expansión vertical
+                      children: [
+                        // Campo de búsqueda
+                        TextField(
+                          controller: widget.controller,
+                          decoration: _buildInputDecoration('Buscar película', Icons.movie),
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: widget.directorController,
+                          decoration: _buildInputDecoration('Buscar por director', Icons.person),
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        const SizedBox(height: 8),
 
-                      // Género
-                      DropdownButtonFormField<String>(
-                        value: widget.selectedGenre,
-                        items: widget.genres.map((genre) => DropdownMenuItem(value: genre, child: Text(genre, style: _dropdownTextStyle))).toList(),
-                        onChanged: widget.onGenreChanged,
-                        decoration: _buildDropdownDecoration(Icons.category),
-                        style: _dropdownTextStyle,
-                        isDense: true, // Compactar dropdown
-                      ),
-                      const SizedBox(height: 8),
+                        // Género
+                        DropdownButtonFormField<String>(
+                          value: widget.selectedGenre,
+                          items: widget.genres.map((genre) => DropdownMenuItem(value: genre, child: Text(genre, style: _dropdownTextStyle))).toList(),
+                          onChanged: widget.onGenreChanged,
+                          decoration: _buildDropdownDecoration(Icons.category),
+                          style: _dropdownTextStyle,
+                          isDense: true, // Compactar dropdown
+                        ),
+                        const SizedBox(height: 8),
 
-                      // Fecha
-                      DropdownButtonFormField<String>(
-                        value: widget.selectedDateFilter,
-                        items: widget.dateFilters.map((dateFilter) => DropdownMenuItem(value: dateFilter, child: Text(dateFilter, style: _dropdownTextStyle))).toList(),
-                        onChanged: widget.onDateFilterChanged,
-                        decoration: _buildDropdownDecoration(Icons.calendar_today),
-                        style: _dropdownTextStyle,
-                        isDense: true,
-                      ),
-                      const SizedBox(height: 8),
+                        // Fecha
+                        DropdownButtonFormField<String>(
+                          value: widget.selectedDateFilter,
+                          items: widget.dateFilters.map((dateFilter) => DropdownMenuItem(value: dateFilter, child: Text(dateFilter, style: _dropdownTextStyle))).toList(),
+                          onChanged: widget.onDateFilterChanged,
+                          decoration: _buildDropdownDecoration(Icons.calendar_today),
+                          style: _dropdownTextStyle,
+                          isDense: true,
+                        ),
+                        const SizedBox(height: 8),
 
-                      // Rating
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: 8,
-                        children: [
-                          const Text('Rating mínimo:', style: TextStyle(color: Color(0xFFFF6347), fontSize: 20, fontWeight: FontWeight.bold)),
-                          Text(widget.selectedRating?.toStringAsFixed(1) ?? '0.0', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Slider(
-                        value: widget.selectedRating ?? 0,
-                        min: 0,
-                        max: 10,
-                        divisions: 100,
-                        label: widget.selectedRating?.toStringAsFixed(1),
-                        onChanged: widget.onRatingChanged,
-                        activeColor: const Color(0xFFFF6347),
-                        inactiveColor: Colors.grey,
-                      ),
-                      const SizedBox(height: 8),
+                        // Rating
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Rating mínimo:', style: TextStyle(color: Color(0xFFFF6347), fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 8),
+                            Text(widget.selectedRating?.toStringAsFixed(1) ?? '0.0', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Slider(
+                          value: widget.selectedRating ?? 0,
+                          min: 0,
+                          max: 10,
+                          divisions: 100,
+                          label: widget.selectedRating?.toStringAsFixed(1),
+                          onChanged: widget.onRatingChanged,
+                          activeColor: const Color(0xFFFF6347),
+                          inactiveColor: Colors.grey,
+                        ),
+                        const SizedBox(height: 8),
 
-                      // Botones compactos
-                      Row(
-
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: widget.onSearch,
-                              style: _buildButtonStyle(),
-                              child: const Text('Buscar',style: TextStyle(color: Colors.white),),
+                        // Botones compactos
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: widget.onSearch,
+                                style: _buildButtonStyle(),
+                                child: const Text('Buscar',style: TextStyle(color: Colors.white),),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: widget.onClearFilters,
-                              style: _buildButtonStyle(),
-                              child: const Text('Limpiar',style: TextStyle(color: Colors.white),),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: widget.onClearFilters,
+                                style: _buildButtonStyle(),
+                                child: const Text('Limpiar',style: TextStyle(color: Colors.white),),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -214,9 +215,9 @@ class _HomeContentState extends State<HomeContent> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  childAspectRatio: 0.6,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
+                  childAspectRatio: MediaQuery.of(context).size.width > 600 ? 0.75 : 0.65,  // Ajuste dinámico
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
                 ),
                 itemCount: widget.movies.length + (widget.isLoadingMore ? 1 : 0),
                 itemBuilder: (context, index) {
@@ -228,7 +229,7 @@ class _HomeContentState extends State<HomeContent> {
                       ? 'https://image.tmdb.org/t/p/w500${movie['poster_path']}'
                       : 'assets/placeholder.png';
 
-                  return GestureDetector(
+                                   return GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
@@ -238,71 +239,158 @@ class _HomeContentState extends State<HomeContent> {
                       );
                     },
                     child: Card(
-                      elevation: 5,
+                      elevation: 8,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                      color: Colors.white,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      color: Colors.grey[900],
+                      child: Stack(
                         children: [
-                          Expanded(
-                            child: ClipRRect(
-                              child: Image.network(
-                                posterUrl,
-                                fit: BoxFit.cover,
-                                height: double.infinity,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    'assets/placeholder.png',
-                                    fit: BoxFit.cover,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  movie['title'],
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                          // Poster image with gradient overlay
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: 5, // Aumentar el espacio para la imagen
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(15),
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.star,
-                                      color: Colors.yellow[700],
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      movie['vote_average']?.toStringAsFixed(2) ?? 'N/A',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black54,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      // Movie poster
+                                      Image.network(
+                                        posterUrl,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Image.asset(
+                                            'assets/placeholder.png',
+                                            fit: BoxFit.cover,
+                                          );
+                                        },
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Fecha de lanzamiento: ${movie['release_date'] ?? 'N/A'}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black54,
+                                      // Gradient overlay on poster
+                                      Positioned.fill(
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.black.withOpacity(0.7),
+                                              ],
+                                              stops: const [0.7, 1.0],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
+                              ),
+                              // Movie info section - más compacto
+                              Expanded(
+                                flex: 1, // Reducir el espacio para la información
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black87,
+                                    borderRadius: BorderRadius.vertical(
+                                      bottom: Radius.circular(15),
+                                    ),
+                                  ),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            movie['title'] ?? 'Sin título',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (constraints.maxHeight > 38)
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.calendar_today,
+                                                    color: Colors.grey[400],
+                                                    size: 10,
+                                                  ),
+                                                  const SizedBox(width: 2),
+                                                  Text(
+                                                    movie['release_date']?.split('-')[0] ?? 'N/A',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey[400],
+                                                    ),
+                                                  ),
+                                                ],
+    
+                                              
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Rating chip
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _getRatingColor(movie['vote_average'] ?? 0),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 3,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.star,
+                                    color: _getRatingColor(movie['vote_average'] ?? 0),
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    movie['vote_average']?.toStringAsFixed(1) ?? 'N/A',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: _getRatingColor(movie['vote_average'] ?? 0),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -317,6 +405,7 @@ class _HomeContentState extends State<HomeContent> {
       ),
     );
   }
+  
   InputDecoration _buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -343,5 +432,12 @@ class _HomeContentState extends State<HomeContent> {
       backgroundColor: const Color(0xFFFF6347),
     );
   }
-
+  
+  Color _getRatingColor(dynamic rating) {
+    double numRating = rating is num ? rating.toDouble() : 0.0;
+    if (numRating >= 8) return Colors.green;
+    if (numRating >= 6) return Colors.amber;
+    if (numRating >= 4) return Colors.orange;
+    return Colors.red;
+  }
 }

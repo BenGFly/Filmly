@@ -1,3 +1,4 @@
+import 'package:filmly/services/user_movie_service.dart';
 import 'package:filmly/tmdb_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -19,6 +20,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   String director = 'Cargando director...';
   String errorMessage = '';
   List<Map<String, dynamic>> cast = [];
+  final UserMovieService _movieService = UserMovieService();
+  bool _isWatched = false;
+  bool _isFavorite = false;
 
   // Mapeo de IDs de géneros a nombres
   final Map<int, String> genreMap = {
@@ -49,6 +53,36 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     _loadGenres();
     _loadDirector();
     _loadCast();
+    _checkIfWatched();
+    _checkIfFavorite();
+  }
+
+  Future<void> _checkIfWatched() async {
+    try {
+      final isWatched =
+          await _movieService.isWatched(widget.movie['id'].toString());
+      if (mounted) {
+        setState(() {
+          _isWatched = isWatched;
+        });
+      }
+    } catch (e) {
+      // Manejar error
+    }
+  }
+
+  Future<void> _checkIfFavorite() async {
+    try {
+      final isFavorite =
+          await _movieService.isFavorite(widget.movie['id'].toString());
+      if (mounted) {
+        setState(() {
+          _isFavorite = isFavorite;
+        });
+      }
+    } catch (e) {
+      // Manejar error
+    }
   }
 
   Future<List<Map<String, dynamic>>> _recommendedMovies() async {
@@ -375,21 +409,65 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     ElevatedButton.icon(
-                                      onPressed: () {
-                                        // Acción para añadir a favoritos
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text(
-                                                  'Película añadida a favoritos')),
-                                        );
+                                      onPressed: () async {
+                                        try {
+                                          final movieId =
+                                              widget.movie['id'].toString();
+
+                                          if (_isFavorite) {
+                                            // Eliminar de vistas
+                                            await _movieService
+                                                .removeFromFavorites(movieId);
+                                            if (mounted) {
+                                              setState(() {
+                                                _isFavorite = false;
+                                              });
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Película eliminada de favoritas')),
+                                              );
+                                            }
+                                          } else {
+                                            // Añadir a vistas
+                                            await _movieService
+                                                .addToFavorites(movieId);
+                                            await _movieService
+                                                .addToWatched(movieId);
+                                            if (mounted) {
+                                              setState(() {
+                                                _isFavorite = true;
+                                              });
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Película marcada como favorita')),
+                                              );
+                                            }
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      'Error: ${e.toString()}')),
+                                            );
+                                          }
+                                        }
                                       },
-                                      icon: const Icon(
-                                        Icons.favorite_border,
+                                      icon: Icon(
+                                        _isFavorite
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
                                         size: 20,
                                         color: Colors.white,
                                       ),
-                                      label: const Text('Favoritos'),
+                                      label: Text(_isFavorite
+                                          ? 'Favorita'
+                                          : 'Marcar como favorita'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Color(0xFFFF6347),
                                         // Naranja cálido
@@ -398,23 +476,67 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                     ),
                                     const SizedBox(height: 16),
                                     ElevatedButton.icon(
-                                      onPressed: () {
-                                        // Acción para marcar como visto
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text(
-                                                  'Película marcada como vista')),
-                                        );
+                                      onPressed: () async {
+                                        try {
+                                          final movieId =
+                                              widget.movie['id'].toString();
+
+                                          if (_isWatched) {
+                                            // Eliminar de vistas
+                                            await _movieService
+                                                .removeFromWatched(movieId);
+                                            if (mounted) {
+                                              setState(() {
+                                                _isWatched = false;
+                                              });
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Película eliminada de vistas')),
+                                              );
+                                            }
+                                          } else {
+                                            // Añadir a vistas
+                                            await _movieService
+                                                .addToWatched(movieId);
+                                            if (mounted) {
+                                              setState(() {
+                                                _isWatched = true;
+                                              });
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Película marcada como vista')),
+                                              );
+                                            }
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      'Error: ${e.toString()}')),
+                                            );
+                                          }
+                                        }
                                       },
-                                      icon: const Icon(
-                                        Icons.check,
+                                      icon: Icon(
+                                        _isWatched
+                                            ? Icons.check_circle
+                                            : Icons.check,
                                         size: 20,
                                         color: Colors.white,
                                       ),
-                                      label: const Text('Visto'),
+                                      label: Text(_isWatched
+                                          ? 'Vista'
+                                          : 'Marcar como vista'),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green, // Verde
+                                        backgroundColor: _isWatched
+                                            ? Colors.green.shade700
+                                            : Colors.green,
                                         foregroundColor: Colors.white,
                                       ),
                                     ),
@@ -529,21 +651,69 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                             MainAxisAlignment.start,
                                         children: [
                                           ElevatedButton.icon(
-                                            onPressed: () {
-                                              // Acción para añadir a favoritos
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                    content: Text(
-                                                        'Película añadida a favoritos')),
-                                              );
+                                            onPressed: () async {
+                                              try {
+                                                final movieId = widget
+                                                    .movie['id']
+                                                    .toString();
+
+                                                if (_isFavorite) {
+                                                  // Eliminar de vistas
+                                                  await _movieService
+                                                      .removeFromFavorites(
+                                                          movieId);
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isFavorite = false;
+                                                    });
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              'Película eliminada de favoritas')),
+                                                    );
+                                                  }
+                                                } else {
+                                                  // Añadir a vistas
+                                                  await _movieService
+                                                      .addToFavorites(movieId);
+                                                  await _movieService
+                                                      .addToWatched(movieId);
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isFavorite = true;
+                                                    });
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              'Película marcada como favorita')),
+                                                    );
+                                                  }
+                                                }
+                                              } catch (e) {
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                        content: Text(
+                                                            'Error: ${e.toString()}')),
+                                                  );
+                                                }
+                                              }
                                             },
-                                            icon: const Icon(
-                                              Icons.favorite_border,
+                                            icon: Icon(
+                                              _isFavorite
+                                                  ? Icons.favorite
+                                                  : Icons.favorite_border,
                                               size: 20,
                                               color: Colors.white,
                                             ),
-                                            label: const Text('Favoritos'),
+                                            label: Text(_isFavorite
+                                                ? 'Favorita'
+                                                : 'Marcar como favorita'),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor:
                                                   Color(0xFFFF6347),
@@ -553,24 +723,71 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                           ),
                                           const SizedBox(width: 16),
                                           ElevatedButton.icon(
-                                            onPressed: () {
-                                              // Acción para marcar como visto
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                    content: Text(
-                                                        'Película marcada como vista')),
-                                              );
+                                            onPressed: () async {
+                                              try {
+                                                final movieId = widget
+                                                    .movie['id']
+                                                    .toString();
+
+                                                if (_isWatched) {
+                                                  // Eliminar de vistas
+                                                  await _movieService
+                                                      .removeFromWatched(
+                                                          movieId);
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isWatched = false;
+                                                    });
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              'Película eliminada de vistas')),
+                                                    );
+                                                  }
+                                                } else {
+                                                  // Añadir a vistas
+                                                  await _movieService
+                                                      .addToWatched(movieId);
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isWatched = true;
+                                                    });
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              'Película marcada como vista')),
+                                                    );
+                                                  }
+                                                }
+                                              } catch (e) {
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                        content: Text(
+                                                            'Error: ${e.toString()}')),
+                                                  );
+                                                }
+                                              }
                                             },
-                                            icon: const Icon(
-                                              Icons.check,
+                                            icon: Icon(
+                                              _isWatched
+                                                  ? Icons.check_circle
+                                                  : Icons.check,
                                               size: 20,
                                               color: Colors.white,
                                             ),
-                                            label: const Text('Visto'),
+                                            label: Text(_isWatched
+                                                ? 'Vista'
+                                                : 'Marcar como vista'),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  Colors.green, // Verde
+                                              backgroundColor: _isWatched
+                                                  ? Colors.green.shade700
+                                                  : Colors.green,
                                               foregroundColor: Colors.white,
                                             ),
                                           ),
@@ -824,7 +1041,7 @@ class RecommendedMovies extends StatelessWidget {
             )
           else
             SizedBox(
-              height: MediaQuery.of(context).size.height > 700 ? 400 : 370,
+              height: MediaQuery.of(context).size.height > 700 ? 450 : 450,
               width: double.infinity,
 
               // Utilizamos el 30% del alto de la pantalla

@@ -63,6 +63,8 @@ class TMDbService {
       movies = await _getMoviesByGenre(genre, page,rating??0);
     } else if (director != null && director.isNotEmpty) {
       movies = await _SearchByDirector(director);
+    }else if(rating != null){
+      movies = await _getMoviesByRating(rating,page);
     }
     // Si no hay título ni género, obtenemos las películas en cartelera
     else {
@@ -91,7 +93,17 @@ class TMDbService {
 
     return movies;
   }
+  Future<Map<String, dynamic>> getMovieDetails(int movieId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/movie/$movieId?api_key=$apiKey&language=es-ES&append_to_response=credits'),
+    );
 
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Error al cargar detalles de la película: ${response.statusCode}');
+    }
+  }
   Future<List<dynamic>> _filterByRating(List<dynamic> movies,
       double rating) async {
     return movies.where((movie) {
@@ -201,7 +213,20 @@ Future<List<dynamic>> _SearchByDirector(String director) async {
   }
 }
 
-// Método para obtener películas por género,
+  Future<List<dynamic>> _getMoviesByRating(rating,page) async {
+    final url = Uri.parse(
+      '$baseUrl/discover/movie?api_key=$apiKey&vote_average.gte=$rating&page=$page',
+    );
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['results'];
+    } else {
+      throw Exception('Failed to load movies by rating');
+    }
+  }
 // Método para obtener películas por género y filtrar por rating mínimo
   Future<List<dynamic>> _getMoviesByGenre(String genre, int page, double rating) async {
     // Obtener el ID del género seleccionado
