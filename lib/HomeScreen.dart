@@ -12,7 +12,8 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _directorController = TextEditingController();
   List<dynamic> _movies = [];
@@ -48,7 +49,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final ScrollController _scrollController = ScrollController();
 
   int _selectedIndex = 0;
-  final List<String> _screenTitles = ['Explora', 'Favoritas', 'Vistas', 'Ajustes'];
+  final List<String> _screenTitles = [
+    'Explora',
+    'Favoritas',
+    'Vistas',
+    'Ajustes'
+  ];
 
   @override
   void initState() {
@@ -57,18 +63,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _selectedDateFilter = "Siempre";
     _loadNowPlayingMovies();
     _scrollController.addListener(_scrollListener);
-    
+
     // Configurar la animación de transición
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+
+    _fadeAnimation =
+        Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _animationController.forward();
   }
 
@@ -80,13 +87,90 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   void _scrollListener() {
-    if (_scrollController.position.pixels ==
-            _scrollController.position.maxScrollExtent &&
+    if (!_scrollController.hasClients) return;
+
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.9 &&
         !_isLoadingMore) {
       _loadMoreMovies();
     }
   }
+void _loadMoreMovies() async {
+  if (_isLoadingMore || _isLoading) return;
 
+  setState(() {
+    _isLoadingMore = true;
+  });
+
+  try {
+    final tmdbService = TMDbService();
+    final nextPage = _currentPage + 1;
+    
+    List<dynamic> newMovies;
+    
+    // If we're searching with filters, use the search endpoint
+    if (_controller.text.isNotEmpty || 
+        _directorController.text.isNotEmpty || 
+        (_selectedGenre != null && _selectedGenre != 'Cualquier género') ||
+        _selectedRating != null ||
+        (_selectedDateFilter != null && _selectedDateFilter != 'Siempre')) {
+      
+      newMovies = await tmdbService.searchMovies(
+        query: _controller.text.isEmpty ? null : _controller.text,
+        director: _directorController.text.isEmpty ? null : _directorController.text,
+        genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
+        page: nextPage,
+        rating: _selectedRating,
+        dateFilter: _selectedDateFilter,
+      );
+    } 
+    // Otherwise load now playing movies
+    else {
+      newMovies = await tmdbService.getNowPlayingMovies(page: nextPage);
+    }
+    
+    if (newMovies.isNotEmpty) {
+      setState(() {
+        // Filtrar duplicados antes de añadir las nuevas películas
+        final Set<int> existingIds = _movies.map<int>((movie) => movie['id']).toSet();
+        final List<dynamic> uniqueNewMovies = newMovies.where((movie) => 
+          !existingIds.contains(movie['id'])).toList();
+        
+        // Si hay películas nuevas únicas, añadirlas y actualizar la página
+        if (uniqueNewMovies.isNotEmpty) {
+          _movies.addAll(uniqueNewMovies);
+          _currentPage = nextPage;
+        } else {
+          // Si todas las nuevas películas son duplicados, mostrar mensaje
+          _showInfoSnackbar('No se encontraron más películas únicas');
+        }
+      });
+    } else {
+      // Si la API devuelve una lista vacía
+      _showInfoSnackbar('No hay más películas disponibles');
+    }
+  } catch (e) {
+    _showErrorSnackbar('Error al cargar más películas: $e');
+  } finally {
+    setState(() {
+      _isLoadingMore = false;
+    });
+  }
+}
+
+// Añade este método para mostrar mensajes informativos
+void _showInfoSnackbar(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.blueGrey,
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      duration: const Duration(seconds: 2),
+    ),
+  );
+}
   void _loadNowPlayingMovies() async {
     setState(() {
       _isLoading = true;
@@ -109,67 +193,43 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   void _searchMovies() async {
+  setState(() {
+    _isLoading = true;
+    _currentPage = 1; // Reiniciar la paginación
+  });
+
+  try {
+    final tmdbService = TMDbService();
+    final movies = await tmdbService.searchMovies(
+      query: _controller.text.isEmpty ? null : _controller.text,
+      director:
+          _directorController.text.isEmpty ? null : _directorController.text,
+      genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
+      page: _currentPage,
+      rating: _selectedRating,
+      dateFilter: _selectedDateFilter,
+    );
+    
+    // Asegurarse de que no hay duplicados (aunque aquí es menos probable porque es la primera página)
+    final uniqueMovies = movies.toSet().toList();
+    
     setState(() {
-      _isLoading = true;
-      _currentPage = 1;
+      _movies = uniqueMovies;
     });
-
-    try {
-      final tmdbService = TMDbService();
-      final movies = await tmdbService.searchMovies(
-        query: _controller.text.isEmpty ? null : _controller.text,
-        director:
-            _directorController.text.isEmpty ? null : _directorController.text,
-        genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
-        page: _currentPage,
-        rating: _selectedRating,
-        dateFilter: _selectedDateFilter,
-      );
-      setState(() {
-        _movies = movies;
-      });
-    } catch (e) {
-      _showErrorSnackbar('Error al buscar películas: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+    
+    // Mostrar mensaje si no hay resultados
+    if (uniqueMovies.isEmpty) {
+      _showInfoSnackbar('No se encontraron películas con estos criterios');
     }
-  }
-
-  void _loadMoreMovies() async {
-    if (_isLoadingMore) return;
-
+  } catch (e) {
+    _showErrorSnackbar('Error al buscar películas: $e');
+  } finally {
     setState(() {
-      _isLoadingMore = true;
+      _isLoading = false;
     });
-
-    try {
-      final tmdbService = TMDbService();
-      final movies = await tmdbService.searchMovies(
-        query: _controller.text.isEmpty ? null : _controller.text,
-        director:
-            _directorController.text.isEmpty ? null : _directorController.text,
-        genre: _selectedGenre == 'Cualquier género' ? null : _selectedGenre,
-        page: _currentPage + 1,
-        rating: _selectedRating,
-        dateFilter: _selectedDateFilter,
-      );
-
-      if (movies.isNotEmpty) {
-        setState(() {
-          _movies.addAll(movies);
-          _currentPage++;
-        });
-      }
-    } catch (e) {
-      _showErrorSnackbar('Error al cargar más películas: $e');
-    } finally {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
   }
+}
+
 
   void _clearFilters() {
     setState(() {
@@ -213,10 +273,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+
+
+// Y al pagar más películas:
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, // Extender el contenido detrás del AppBar
+      extendBodyBehindAppBar: true,
       appBar: _buildAppBar(),
       body: Container(
         decoration: const BoxDecoration(
@@ -240,6 +305,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 onClearFilters: _clearFilters,
                 dateFilters: _dateFilters,
                 selectedDateFilter: _selectedDateFilter,
+                scrollController: _scrollController,
+                 movies: _movies,
                 onDateFilterChanged: (String? value) {
                   setState(() {
                     _selectedDateFilter = value;
@@ -252,7 +319,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   });
                 },
                 isLoading: _isLoading,
-                movies: _movies,
                 isLoadingMore: _isLoadingMore,
                 onGenreChanged: (String? value) {
                   setState(() {
@@ -272,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-   PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
       elevation: 0,
       backgroundColor: Colors.transparent,
@@ -391,7 +457,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ],
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        selectedItemColor: _getThemeColorForIndex(_selectedIndex), // Color dinámico según la sección
+        selectedItemColor: _getThemeColorForIndex(
+            _selectedIndex), // Color dinámico según la sección
         unselectedItemColor: Colors.grey,
         selectedFontSize: 12,
         unselectedFontSize: 10,
@@ -399,10 +466,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  BottomNavigationBarItem _buildNavigationBarItem(IconData icon, String label, int index) {
+  BottomNavigationBarItem _buildNavigationBarItem(
+      IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
     final color = _getThemeColorForIndex(index);
-    
+
     return BottomNavigationBarItem(
       icon: Container(
         padding: const EdgeInsets.all(8.0),
@@ -411,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
-          icon, 
+          icon,
           color: isSelected ? color : Colors.grey,
           size: isSelected ? 24 : 22,
         ),
@@ -420,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       backgroundColor: Colors.transparent,
     );
   }
-  
+
   Color _getThemeColorForIndex(int index) {
     switch (index) {
       case 0:
@@ -435,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return const Color(0xFFFF6347); // Default
     }
   }
-  
+
   IconData _getIconForIndex(int index) {
     switch (index) {
       case 0:
