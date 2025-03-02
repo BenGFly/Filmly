@@ -1,16 +1,53 @@
-# filmly
+# Filmly
 
-A new Flutter project.
+Una aplicación móvil para descubrir y explorar películas utilizando Flutter y APIs modernas.
 
-## Getting Started
+## Características
 
-This project is a starting point for a Flutter application.
+- Búsqueda avanzada de películas por título, género, director y calificación
+- Búsqueda con IA impulsada por Gemini (Google AI)
+- Recomendaciones personalizadas basadas en descripciones de texto
+- Diseño adaptativo para dispositivos móviles y tablets
+- Modo oscuro integrado
+- Experiencia de usuario fluida y moderna
 
-A few resources to get you started if this is your first Flutter project:
+## Tecnologías utilizadas
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Flutter para el desarrollo multiplataforma
+- APIs de The Movie Database (TMDb) para la información de películas
+- Gemini API para las recomendaciones basadas en IA
+- Arquitectura limpia con principios SOLID
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Configuración
+
+1. Clona el repositorio
+2. Instala las dependencias:
+flutter pub get
+3. Configura las claves de API:
+- Crea un archivo `.env` en la raíz del proyecto con el siguiente formato:
+TMDB_API_KEY=tu_clave_api_tmdb GEMINI_API_KEY=tu_clave_api_gemini
+4. Ejecuta la aplicación:
+flutter run
+
+## Estructura del proyecto
+
+- `lib/`: Código fuente principal
+  - `services/`: Servicios para comunicación con APIs
+  - `screens/`: Pantallas principales de la aplicación
+  - `widgets/`: Componentes reutilizables
+  - `models/`: Modelos de datos
+  - `utils/`: Utilidades y helpers
+
+## Notas de desarrollo
+
+- La aplicación está optimizada para Android y iOS
+- Diseño responsivo para diferentes tamaños de pantalla y orientaciones
+- Soporte para modo oscuro y personalización visual
+
+## Privacidad y seguridad
+
+Para proteger tus claves de API, asegúrate de:
+
+1. Añadir `.env` a tu archivo `.gitignore`
+2. Nunca compartir tus claves de API en repositorios públicos
+3. Usar variables de entorno para la configuración de producción
