@@ -26,10 +26,15 @@ flutter pub get
 3. Configura las claves de API:
 - Crea un archivo `.env` en la raíz del proyecto con el siguiente formato:
 SUPABASE_URL=tu_supabase_url
+
 SUPABASE_ANON_KEY=tu_supabase_anon_key
+
 TMDB_API_KEY=tu_tmdb_api_key
+
 TMDB_BASE_URL=https://api.themoviedb.org/3
+
 GEMINI_API_KEY=tu_gemini_api_key
+
 4. Ejecuta la aplicación:
 flutter run
 
