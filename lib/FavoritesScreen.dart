@@ -5,7 +5,7 @@ import 'package:filmly/tmdb_service.dart';
 import 'package:filmly/MovieDetailsScreen.dart';
 
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({Key? key}) : super(key: key);
+  const FavoritesScreen({super.key});
 
   @override
   _FavoritesScreenState createState() => _FavoritesScreenState();

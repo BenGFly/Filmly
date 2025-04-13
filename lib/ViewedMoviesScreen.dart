@@ -5,7 +5,7 @@ import 'package:filmly/tmdb_service.dart';
 import 'package:filmly/MovieDetailsScreen.dart';
 
 class ViewedMoviesScreen extends StatefulWidget {
-  const ViewedMoviesScreen({Key? key}) : super(key: key);
+  const ViewedMoviesScreen({super.key});
 
   @override
   _ViewedMoviesScreenState createState() => _ViewedMoviesScreenState();

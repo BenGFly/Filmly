@@ -4,7 +4,7 @@ import 'package:filmly/MovieDetailsScreen.dart';
 import 'package:filmly/tmdb_service.dart';
 
 class AIRecommendationScreen extends StatefulWidget {
-  const AIRecommendationScreen({Key? key}) : super(key: key);
+  const AIRecommendationScreen({super.key});
 
   @override
   _AIRecommendationScreenState createState() => _AIRecommendationScreenState();

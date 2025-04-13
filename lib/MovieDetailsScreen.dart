@@ -1459,12 +1459,15 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
   // Método para obtener el color según el rating
   Color _getRatingColor(dynamic rating) {
     double numRating = rating is num ? rating.toDouble() : 0.0;
-    if (numRating >= 8)
+    if (numRating >= 8) {
       return const Color(0xFF4CAF50); // Verde para ratings altos
-    if (numRating >= 6)
+    }
+    if (numRating >= 6) {
       return const Color(0xFFFFD54F); // Amarillo para ratings medios
-    if (numRating >= 4)
+    }
+    if (numRating >= 4) {
       return const Color(0xFFFF9800); // Naranja para ratings bajos
+    }
     return const Color(0xFFF44336); // Rojo para ratings muy bajos
   }
 

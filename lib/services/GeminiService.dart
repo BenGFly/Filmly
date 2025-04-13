@@ -139,12 +139,11 @@ class GeminiService {
                 return parsedData.values
                     .map((item) => item.toString())
                     .toList();
-              } else if (parsedData is Map) {
-                // Convert Map values to a list of strings
-                return parsedData.values
-                    .map((item) => item.toString())
-                    .toList();
-              }
+              } else              // Convert Map values to a list of strings
+              return parsedData.values
+                  .map((item) => item.toString())
+                  .toList();
+            
               throw Exception('No se encontraron títulos en la respuesta');
             }
 
